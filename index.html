@@ -1,0 +1,411 @@
+<!DOCTYPE html>
+<html>
+<head>
+<meta charset="utf-8">
+<title>Solar Street Light VR</title>
+<script src="https://aframe.io/releases/1.5.0/aframe.min.js"></script>
+<script>
+window.onload = function() {
+  const rain = document.querySelector('#rain');
+  const sky = document.querySelector('#sky');
+  const sun = document.querySelector('#sun');
+  const moon = document.querySelector('#moon');
+  const lights = document.querySelectorAll('.lampLight');
+  const solar = document.querySelector('#solarWrapper');
+  const energyText = document.querySelector('#energyText');
+  const evBox = document.querySelector('#evBox');
+const evText = document.querySelector('#evText');
+const wire = document.querySelector('#chargeWire');
+const car = document.querySelector('#car');
+ const skyStatus = document.querySelector('#skyStatus');
+  let angle = Math.PI / 2;
+  let battery = 100;
+  let isRaining = false;
+
+  // 🌧 FULL CAMERA VIEW RAIN
+for (let i = 0; i < 400; i++) {
+
+  let drop = document.createElement('a-box');
+
+  drop.setAttribute('width', 0.08);
+  drop.setAttribute('height', 1.5);
+  drop.setAttribute('depth', 0.08);
+  drop.setAttribute('color', '#87CEFA');
+  drop.setAttribute('opacity', 0.7);
+
+  // 🔥 Spawn full camera width & depth
+  let x = (Math.random() - 0.5) * 60;     // left ↔ right full
+  let z = -5 - Math.random() * 80;       // camera to far road
+  let yStart = Math.random() * 25 + 20;  // high sky start
+
+  drop.setAttribute('position', { x: x, y: yStart, z: z });
+
+  drop.setAttribute('animation', {
+    property: 'position',
+    to: `${x} -5 ${z}`,
+    dur: 900,
+    loop: true
+  });
+
+  rain.appendChild(drop);
+  // 🚗 Car Move → EV Box Stop
+car.setAttribute('animation__drive', {
+  property: 'position',
+  to: '5 0.3 -3',   // EV box near stop point
+  dur: 8000,
+  easing: 'linear'
+});
+}
+
+  
+
+  setInterval(() => {
+
+    const radius = 50;
+    const height = 50;
+
+   
+   
+     
+
+    // ===== SUN & MOON ORBIT =====
+    const sunX = radius * Math.cos(angle);
+    const sunY = height * Math.sin(angle);
+
+    sun.setAttribute('position', `${sunX} ${sunY} -60`);
+
+    const moonX = radius * Math.cos(angle + Math.PI);
+    const moonY = height * Math.sin(angle + Math.PI);
+
+    moon.setAttribute('position', `${moonX} ${moonY} -60`);
+
+    // ===== DAY MODE =====
+    if (sunY > 0) {
+
+      sky.setAttribute('color', '#87CEEB');
+      sun.setAttribute('visible', true);
+      moon.setAttribute('visible', false);
+      skyStatus.setAttribute('value',
+  `☀ POWER OF SUN: ACTIVE\n💡 STREET LIGHTS: OFF`);
+      // ⚡ Wire Charging Animation
+wire.setAttribute('color', '#00ffff');
+
+wire.setAttribute('animation__flow', {
+  property: 'material.emissiveIntensity',
+  from: 0.2,
+  to: 1,
+  dur: 500,
+  loop: true,
+  dir: 'alternate'
+});
+
+      // 🔋 Charging
+      battery += 0.15;
+      if (battery > 100) battery = 100;
+
+      // Solar Glow Animation
+      solar.setAttribute('animation',
+        'property: material.emissiveIntensity; from: 0; to: 1; dur: 2000; dir: alternate; loop: true');
+
+      // All Lights OFF
+      lights.forEach(light =>
+        light.setAttribute('light', 'intensity', 0)
+      );
+
+      // Display Update
+      if (energyText) {
+        energyText.setAttribute('color', 'lime');
+        energyText.setAttribute('value',
+          `DAY MODE\nCharging...\nBattery: ${battery.toFixed(0)}%\nEV Charging: ON`);
+      }
+
+    }
+
+    // ===== NIGHT MODE =====
+    else {
+
+      sky.setAttribute('color', '#0a0a2a');
+      sun.setAttribute('visible', false);
+      moon.setAttribute('visible', true);
+      wire.setAttribute('color', '#333');
+      let lightStatus = battery > 0 ? "ON" : "OFF";
+
+skyStatus.setAttribute('value',
+  `🌙 POWER OF SUN: INACTIVE\n💡 STREET LIGHTS: ${lightStatus}`);
+wire.removeAttribute('animation__flow');
+wire.setAttribute('material', 'emissiveIntensity', 0);
+
+      // 🔋 Battery Usage
+      battery -= 0.25;
+      if (battery < 0) battery = 0;
+
+      solar.removeAttribute('animation');
+      solar.setAttribute('material', 'emissiveIntensity', 0);
+
+      // 🔥 Smart Auto Brightness
+      let brightness = 5;
+
+      if (battery < 50) brightness = 3;
+      if (battery < 20) brightness = 1.5;
+      if (battery <= 0) brightness = 0;
+
+      lights.forEach(light =>
+        light.setAttribute('light', 'intensity', brightness)
+      );
+
+      // 📱 Mobile Charging Logic
+      let evStatus = battery > 30 ? "ON" : "OFF";// ⚡ EV Charging Logic
+    if (battery >= 50) {
+      evText.setAttribute('value', 'EV: ON');
+      evText.setAttribute('color', 'lime');
+      evBox.setAttribute('color', '#00ff88');
+     }
+    else  {
+       evText.setAttribute('value', 'EV: OFF');
+       evText.setAttribute('color', 'red');
+       evBox.setAttribute('color', '#222');
+     }
+
+      // Display Update
+      if (energyText) {
+
+        if (battery < 20) {
+          energyText.setAttribute('color', 'red');
+        } else {
+          energyText.setAttribute('color', 'orange');
+        }
+
+        energyText.setAttribute('value',
+          `NIGHT MODE\nBattery: ${battery.toFixed(0)}%\nEV Charging: ${evStatus}`);
+      }
+    }
+   
+
+
+angle += 0.01;
+    
+ 
+
+  }, 50);
+
+}
+</script>
+</head>
+
+<body>
+  <!-- ⚡ CONNECTING WIRE -->
+<a-cylinder id="chargeWire"
+            position="4 1.4 -2"
+            radius="0.05"
+            height="2"
+            rotation="0 0 90"
+            color="#333"
+            opacity="0.8">
+</a-cylinder>
+
+<a-scene cursor="rayOrigin: mouse"
+         renderer="antialias: true"
+         shadow="type: pcfsoft"
+         vr-mode-ui="enabled: false"
+        >
+
+<!-- Assets -->
+<a-assets>
+  <a-asset-item id="cantileverModel" src="models/full_cantilever_t.glb"></a-asset-item>
+  <a-asset-item id="carModel" src="models/nissan_200sx_silvia_s14.glb"></a-asset-item>
+  <a-asset-item id="streetModel" src="models/stylized_street_light.glb"></a-asset-item>
+   <audio id="person1.1" src="audios/person 1.1.mp3"></audio>
+    <audio id="person2.1" src="audios/person 2.1.mp3"></audio>
+    <audio id="person1.2" src="audios/person 1.2.mp3"></audio>
+    <audio id="person2.2" src="audios/person 2.2.mp3"></audio>
+    <audio id="person1.3" src="audios/person 1.3.mp3"></audio>
+    <audio id="person2.3" src="audios/person 2.3.mp3"></audio>
+    <audio id="person1.4" src="audios/person 1.4.mp3"></audio>
+    <audio id="person2.4" src="audios/person 2.4.mp3"></audio>
+    <audio id="person1.5" src="audios/person 1.5.mp3"></audio>
+    <audio id="person2.5" src="audios/person 2.5.mp3"></audio>
+</a-assets>
+  
+
+<a-entity sound="src: #person1.1; autoplay: true; loop: true"></a-entity>
+<a-entity sound="src: #person2.1; autoplay: true; loop: true"></a-entity>
+<a-entity sound="src: #person1.2; autoplay: true; loop: true"></a-entity>
+<a-entity sound="src: #person2.2; autoplay: true; loop: true"></a-entity>
+<a-entity sound="src: #person1.3; autoplay: true; loop: true"></a-entity>
+<a-entity sound="src: #person2.3; autoplay: true; loop: true"></a-entity>
+<a-entity sound="src: #person1.4; autoplay: true; loop: true"></a-entity>
+<a-entity sound="src: #person2.4; autoplay: true; loop: true"></a-entity>
+<a-entity sound="src: #person1.5; autoplay: true; loop: true"></a-entity>
+<a-entity sound="src: #person2.5; autoplay: true; loop: true"></a-entity>
+
+<!-- SKY -->
+<a-sky id="sky" color="#87CEEB"></a-sky>
+
+<!-- 🌞 SKY STATUS TEXT -->
+<a-text id="skyStatus"
+        value="Status"
+        position="0 25 -40"
+        align="center"
+        color="white"
+        width="40">
+</a-text>
+
+<!-- SUN -->
+<a-sphere id="sun"
+          position="0 0 -60"
+          radius="3"
+          color="#FFD700">
+  
+</a-sphere>
+
+<!-- MOON -->
+<a-sphere id="moon"
+          position="0 0 -60"
+          radius="2.5"
+          color="#FFFFFF"
+          visible="false">
+  
+</a-sphere>
+
+<a-entity id="car"
+          gltf-model="#carModel"
+          position="5 0.3 -40"
+          scale="2 2 2"
+          rotation="0 180 0">
+</a-entity>
+<!-- Ambient Light -->
+<a-entity id="ambientLight"
+          light="type: ambient; intensity: 1">
+</a-entity><a-box position="4 1.4 -1"
+       width="1.8"
+       height="0.6"
+       depth="0.1"
+       color="black">
+       
+  <a-text id="energyText"
+          value="Battery: 100%"
+          align="center"
+          color="lime"
+          position="0 0 0.06"
+          width="3">
+  </a-text>
+
+  
+</a-box>
+
+<a-entity id="solarPanel"
+          gltf-model="#solarModel"
+          position="6.5 2 -5 "
+          scale="1 1 1"
+          rotation="-30 0 0">
+</a-entity> 
+
+<!-- ✅ SIMPLE ROAD PLANE -->
+<a-plane position="0 0 -40"
+         rotation="-90 0 0"
+         width="15"
+         height="80"
+         color="#444">
+</a-plane>
+<a-entity id="solarWrapper"
+          position="6.5 2 -1"
+          rotation="0 15 0">
+
+  <a-entity id="cantilever"
+            gltf-model="#cantileverModel"
+            position="0 -2 0"
+            scale="0.015 0.015 0.015">
+  </a-entity>
+
+</a-entity>
+
+<a-entity id="rain"  position="0 0 -30" visible="false"></a-entity>
+<!-- ===== RIGHT SIDE CONTINUOUS LINE ===== -->
+<a-box position="7.4 0.02 -20"
+       width="0.2"
+       height="0.02"
+       depth="40"
+       color="white">
+</a-box>
+
+<!-- ===== LEFT SIDE CONTINUOUS LINE ===== -->
+<a-box position="-7.4 0.02 -20"
+       width="0.2"
+       height="0.02"
+       depth="40"
+       color="white">
+</a-box>
+
+<!-- ===== CENTER DASHED LINES ===== -->
+
+<a-box position="0 0.01 -10" width="0.5" height="0.02" depth="3" color="white"></a-box>
+<a-box position="0 0.01 -18" width="0.5" height="0.02" depth="3" color="white"></a-box>
+<a-box position="0 0.01 -26" width="0.5" height="0.02" depth="3" color="white"></a-box>
+<a-box position="0 0.01 -34" width="0.5" height="0.02" depth="3" color="white"></a-box>
+<a-box position="0 0.01 -42" width="0.5" height="0.02" depth="3" color="white"></a-box>
+
+<!-- ===== RIGHT SIDE LIGHTS ===== -->
+<a-entity gltf-model="#streetModel"
+          position="6 0 -15"
+          scale="2 2 2"
+          rotation="0 -90 0"></a-entity>
+
+<a-entity class="lampLight"
+          position="14 6 -15"
+          light="type: point; intensity: 0; distance: 30"></a-entity>
+
+<a-entity gltf-model="#streetModel"
+          position="6 0 -25"
+          scale="2 2 2"
+          rotation="0 -90 0"></a-entity>
+
+<a-entity class="lampLight"
+          position="14 6 -28"
+          light="type: point; intensity: 0; distance: 30"></a-entity>
+
+<!-- ===== LEFT SIDE LIGHTS ===== -->
+<a-entity gltf-model="#streetModel"
+          position="-6 0 -15"
+          scale="2 2 2"
+          rotation="0 90 0"></a-entity>
+
+<a-entity class="lampLight"
+          position="-14 6 -15"
+          light="type: point; intensity: 0; distance: 30"></a-entity>
+
+<a-entity gltf-model="#streetModel"
+          position="-6 0 -28"
+          scale="2 2 2"
+          rotation="0 90 0"></a-entity>
+
+<a-entity class="lampLight"
+          position="-14 6 -28"
+          light="type: point; intensity: 0; distance: 30"></a-entity>
+
+<!-- ⚡ EV CHARGING BOX -->
+<a-box id="evBox"
+       position="4 0.8 -3"
+       width="0.6"
+       height="1.2"
+       depth="0.4"
+       color="#222">
+</a-box>
+
+<a-text id="evText"
+        value="EV: OFF"
+        color="red"
+        position="4 1.8 -3"
+        align="center"
+        width="4">
+</a-text>
+
+<!-- Camera -->
+<a-entity id="cameraRig" position="0 1.6 -1.5">
+  <a-camera position="0 1.6 4"
+            >
+  </a-camera>
+
+</a-entity>
+</a-scene>
+</body>
+</html>
